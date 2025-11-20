@@ -89,8 +89,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+
 	case BotMoveMsg:
 		m.game.PlayMove(msg.move)
+		botEvaln = msg.score
 		return m, nil
 	}
 
