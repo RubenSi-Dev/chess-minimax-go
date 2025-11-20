@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/spunker/chess/state"
@@ -10,6 +9,7 @@ import (
 type Game struct {
 	State *state.State
 	Over bool
+	Moves int
 	legalMovesPreProcess []*state.Move
 }
 
@@ -17,9 +17,9 @@ func StartGame(setup string) (result *Game) {
 	result = &Game{
 		State: state.CreateState(setup),
 		Over: false,
+		Moves: 0,
 	}
 	result.legalMovesPreProcess = result.State.GetLegalMoves()
-	fmt.Println(result.legalMovesPreProcess)
 	return
 }
 
@@ -40,6 +40,7 @@ func (g *Game) PlayMove(move *state.Move) bool {
 
 	if isLegal {
 		g.State.ApplyMove(legalMove)
+		g.Moves++
 		return true
 	}
 	return false

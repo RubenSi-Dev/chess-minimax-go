@@ -1,1 +1,1 @@
- chess-minimax-go
+ # chess-minimax-go

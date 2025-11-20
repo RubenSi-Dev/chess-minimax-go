@@ -7,7 +7,7 @@ import (
 type State struct {
 	Board *Board
 	Turn string
-	LastMove *Move
+	previousMoves []*Move
 	possibleMovesCache []*Move
 	legalMovesCache []*Move
 	legalMovesOrderedCache []*Move
@@ -18,7 +18,7 @@ func CreateState(setup string) *State {
 	return &State{
 		Board: createBoard(setup),
 		Turn: "white",
-		LastMove: nil,
+		previousMoves: []*Move{},
 		possibleMovesCache: []*Move{},
 		legalMovesCache: []*Move{},
 		legalMovesOrderedCache: []*Move{},
@@ -64,47 +64,50 @@ func (s *State) applyMoveBool(move *Move) bool {
 			s.Board.RemoveFrom(&move.From)
 			newPiece := s.Board.placeNew(piece.Color, move.Promotion, move.To)
 			newPiece.HasMoved = true
-			s.LastMove = move
+			s.previousMoves = append(s.previousMoves, move) 
 			return true
 		}	else {
-			if piece.Type == "king" && !piece.HasMoved {
-				var rookMove *Move
+			if piece.Type == "king" {
+				s.Board.clearKingsPosCash(piece.Color)
+				if !piece.HasMoved {
+					var rookMove *Move
 
-				switch move.To.X - move.From.X {
+					switch move.To.X - move.From.X {
 
-				case 2: // short caslte
-					rookMove = CreateMove(
-						Position{
-							X: move.From.X + 3,
-							Y: move.From.Y,
-						},
-						Position{
-							X: move.From.X + 1, 
-							Y: move.From.Y,
-						},
-					)
+					case 2: // short caslte
+						rookMove = CreateMove(
+							Position{
+								X: move.From.X + 3,
+								Y: move.From.Y,
+							},
+							Position{
+								X: move.From.X + 1, 
+								Y: move.From.Y,
+							},
+						)
 
-				case -2: // long castle
-					rookMove = CreateMove(
-						Position{
-							X: move.From.X - 4,
-							Y: move.From.Y,
-						},
-						Position{
-							X: move.To.X - 1,
-							Y: move.From.Y,
-						},
-					)
-				default:
-					rookMove = nil
+					case -2: // long castle
+						rookMove = CreateMove(
+							Position{
+								X: move.From.X - 4,
+								Y: move.From.Y,
+							},
+							Position{
+								X: move.From.X - 1,
+								Y: move.From.Y,
+							},
+						)
+					default:
+						rookMove = nil
+					}
+
+					if rookMove == nil || !s.applyMoveBool(rookMove) { return false }
 				}
-
-				if rookMove == nil || !s.applyMoveBool(rookMove) { return false }
 			}
 			piece.moveTo(move.To)
 			s.Board.RemoveFrom(&move.From)
 			s.Board.PlaceOn(piece, &move.To)
-			s.LastMove = move
+			s.previousMoves = append(s.previousMoves, move)
 		}
 		return true
 	}
@@ -120,6 +123,7 @@ func (s *State) ApplyMove(move *Move) (applied bool) {
 	}
 	return
 }
+
 
 func (s *State) isMoveLegal(move *Move) bool {
 	if (len(s.legalMovesCache) != 0) {
@@ -159,6 +163,7 @@ func (s *State) GetLegalMoves() []*Move {
 	return s.legalMovesCache
 }
 
+
 func (s *State) IsGameOver() bool {
 	return s.IsCheckmate() || s.IsStalemate()
 }
@@ -166,7 +171,7 @@ func (s *State) IsGameOver() bool {
 func (s *State) IsCheckmate() bool {
 	if legalMoves := s.GetLegalMoves(); len(legalMoves) == 0 {
 		kingPos := s.Board.FindPiece("king", s.Turn)
-		if len(kingPos) == 0 { return false }
+		if len(kingPos) == 0 || kingPos == nil { return false }
 		copy := s.Copy()
 		copy.switchTurn()
 		if slices.ContainsFunc(copy.GetPossibleMoves(), func(m *Move) bool {
@@ -191,7 +196,7 @@ func (s *State) Copy() *State {
 	return &State{
 		Board: newBoard,
 		Turn: s.Turn,
-		LastMove: s.LastMove,
+		previousMoves: s.previousMoves,
 		possibleMovesCache: []*Move{},
 		legalMovesCache: []*Move{},
 		legalMovesOrderedCache: []*Move{},

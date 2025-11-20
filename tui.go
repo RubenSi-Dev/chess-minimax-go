@@ -10,6 +10,8 @@ import (
 	ai "github.com/spunker/chess/ai"
 )
 
+var botEvaln float64
+
 type model struct {
 	game *Game
 	cursor chess.Position
@@ -19,13 +21,28 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		game: StartGame("castling"),
+		game: StartGame("default"),
 		selected: []chess.Position{},
 	}
 }
 
 func (m model) Init() tea.Cmd {
 	return nil
+}
+
+type BotMoveMsg struct {
+	move *chess.Move
+	score float64
+}
+
+func getBotMove(s *chess.State, depth int) tea.Cmd {
+	return func() tea.Msg {
+		move, score := ai.SelectMove(s, depth)
+		return BotMoveMsg{
+			move: move,
+			score: score,
+		}
+	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -68,12 +85,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 				m.selected = []chess.Position{}
 				if ok {
-					botmove, _ := ai.SelectMove(m.game.State, 3)
-					m.game.PlayMove(botmove)
+					return m, getBotMove(m.game.State, 4)
 				}
 			}
 		}
+
+	case BotMoveMsg:
+		m.game.PlayMove(msg.move)
+		botEvaln = msg.score
+		return m, nil
 	}
+
 	return m, nil
 }
 
@@ -85,7 +107,7 @@ func (m model) View() string {
 func StartTui() {
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("alas, there's been an eeror: %v", err)
+		fmt.Printf("alas, there's been an error: %v", err)
 		os.Exit(1)
 	}
 }

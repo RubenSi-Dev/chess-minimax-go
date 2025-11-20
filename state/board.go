@@ -16,11 +16,15 @@ var algebraicLetters = []string{"A", "B", "C", "D", "E", "F", "G", "H"}
 type grid [][]*Piece
 
 type Board struct {
-	Grid grid
-	piecesCache []*Piece
+	Grid                   grid
+	piecesCache            []*Piece
 	squaresControlledCache map[string]([]*Position)
-	kingsPositionCache map[string]*Position
-	isCopy bool
+	kingsPositionCache     map[string]*Position
+	isCopy                 bool
+}
+
+func (b *Board) clearKingsPosCash(color string) {
+	b.squaresControlledCache[color] = nil
 }
 
 func createBoard(setup string) (result *Board) {
@@ -47,10 +51,7 @@ func (b *Board) clearCache() {
 	}
 	b.piecesCache = []*Piece{}
 	for k := range b.squaresControlledCache {
-		b.squaresControlledCache[k]	= []*Position{}
-	}
-	for k := range b.kingsPositionCache {
-		b.kingsPositionCache[k] = nil
+		b.squaresControlledCache[k] = []*Position{}
 	}
 }
 
@@ -126,14 +127,13 @@ func (b *Board) defaultSetup() {
 	}
 }
 
-
-func (b *Board) GetPieces() ([]*Piece) {
-	if len(b.piecesCache) == 0 { 
+func (b *Board) GetPieces() []*Piece {
+	if len(b.piecesCache) == 0 {
 		b.piecesCache = []*Piece{}
 		for _, rank := range b.Grid {
-			for _, square := range rank{
-				if (square != nil) {
-					b.piecesCache = append(b.piecesCache, square);
+			for _, square := range rank {
+				if square != nil {
+					b.piecesCache = append(b.piecesCache, square)
 				}
 			}
 		}
@@ -141,22 +141,24 @@ func (b *Board) GetPieces() ([]*Piece) {
 	return b.piecesCache
 }
 
-func (b *Board) GetPiece(pos *Position) *Piece{
-	if !b.isInBounds(pos) { return nil }
+func (b *Board) GetPiece(pos *Position) *Piece {
+	if !b.isInBounds(pos) {
+		return nil
+	}
 	return b.Grid[pos.Y][pos.X]
 }
 
 func (b *Board) FindPiece(typ string, color string) (result []*Position) {
-	if (typ == "king" && b.kingsPositionCache[color] != nil) {
+	if typ == "king" && b.kingsPositionCache[color] != nil {
 		return []*Position{b.kingsPositionCache[color]}
-	} 
+	}
 	result = []*Position{}
 	for _, piece := range b.GetPieces() {
-		if (piece.Color == color && piece.Type == typ) {
+		if piece.Color == color && piece.Type == typ {
 			result = append(result, &piece.Pos)
 		}
 	}
-	if (typ == "king") {
+	if typ == "king" {
 		b.kingsPositionCache[color] = result[0]
 	}
 	return
@@ -167,13 +169,17 @@ func (b *Board) isInBounds(pos *Position) bool {
 }
 
 func (b *Board) PlaceOn(piece *Piece, pos *Position) bool {
-	if (!b.isInBounds(pos)) { return false }
+	if !b.isInBounds(pos) {
+		return false
+	}
 	b.Grid[pos.Y][pos.X] = piece
 	return true
 }
 
 func (b *Board) placeNew(color string, typ string, pos Position) (piece *Piece) {
-	if (!b.isInBounds(&pos)) { return nil } 
+	if !b.isInBounds(&pos) {
+		return nil
+	}
 
 	piece = createPiece(color, typ, pos)
 	b.Grid[pos.Y][pos.X] = piece
@@ -181,16 +187,18 @@ func (b *Board) placeNew(color string, typ string, pos Position) (piece *Piece) 
 }
 
 func (b *Board) RemoveFrom(pos *Position) {
-	if (!b.isInBounds(pos)) { return }
+	if !b.isInBounds(pos) {
+		return
+	}
 	b.Grid[pos.Y][pos.X] = nil
 }
 
 func (b *Board) squaresControlledBy(color string) []*Position {
 	if len(b.squaresControlledCache[color]) == 0 {
-		for _,piece := range b.GetPieces() {
+		for _, piece := range b.GetPieces() {
 			if piece.Color == color {
 				moves := piece.GetPossibleMoves(b)
-				for _,move := range moves {
+				for _, move := range moves {
 					b.squaresControlledCache[color] = append(b.squaresControlledCache[color], &move.To)
 				}
 			}
@@ -207,7 +215,7 @@ func (b *Board) copy() (copy *Board) {
 	copy = createBoard("clear")
 	for y, rank := range b.Grid {
 		for x, square := range rank {
-			if (square != nil) {
+			if square != nil {
 				copy.Grid[y][x] = b.Grid[y][x].copy()
 			}
 		}
