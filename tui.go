@@ -85,7 +85,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 				m.selected = []chess.Position{}
 				if ok {
-					return m, getBotMove(m.game.State, 3)
+					return m, getBotMove(m.game.State, 4)
 				}
 			}
 		}
