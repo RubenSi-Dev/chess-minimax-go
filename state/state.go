@@ -2,7 +2,6 @@ package state
 
 import (
 	"slices"
-	//"fmt"
 )
 
 type State struct {
@@ -58,55 +57,59 @@ func (s *State) GetPossibleMoves() []*Move {
 }
 
 
-func (this *State) applyMoveBool(move *Move) bool {
-	piece := this.Board.GetPiece(&move.From) 
+func (s *State) applyMoveBool(move *Move) bool {
+	piece := s.Board.GetPiece(&move.From) 
 	if piece != nil {
 		if move.Promotion == "queen" {
-			this.Board.RemoveFrom(&move.From)
-			newPiece := this.Board.placeNew(piece.Color, move.Promotion, move.To)
+			s.Board.RemoveFrom(&move.From)
+			newPiece := s.Board.placeNew(piece.Color, move.Promotion, move.To)
 			newPiece.HasMoved = true
-			this.LastMove = move
-			//fmt.Println(this.Board)
+			s.LastMove = move
 			return true
 		}	else {
 			if piece.Type == "king" && !piece.HasMoved {
-				if move.From.X - move.To.X == -2 {
-					rookFrom := Position{
-						X: move.From.X + 3,
-						Y: move.From.Y,
-					}
-					rookTo := Position{
-						X: move.From.X + 1, 
-						Y: move.From.Y,
-					}
-					rookMove := CreateMove(rookFrom, rookTo)
+				var rookMove *Move
 
-					if ( !this.applyMoveBool(rookMove) ) { return false }
+				switch move.To.X - move.From.X {
+
+				case 2: // short caslte
+					rookMove = CreateMove(
+						Position{
+							X: move.From.X + 3,
+							Y: move.From.Y,
+						},
+						Position{
+							X: move.From.X + 1, 
+							Y: move.From.Y,
+						},
+					)
+
+				case -2: // long castle
+					rookMove = CreateMove(
+						Position{
+							X: move.From.X - 4,
+							Y: move.From.Y,
+						},
+						Position{
+							X: move.To.X - 1,
+							Y: move.From.Y,
+						},
+					)
+				default:
+					rookMove = nil
 				}
+
+				if rookMove == nil || !s.applyMoveBool(rookMove) { return false }
 			}
 			piece.moveTo(move.To)
-			this.Board.RemoveFrom(&move.From)
-			this.Board.PlaceOn(piece, &move.To)
-			this.LastMove = move
+			s.Board.RemoveFrom(&move.From)
+			s.Board.PlaceOn(piece, &move.To)
+			s.LastMove = move
 		}
 		return true
 	}
 	return false
 }
-
-//func (s *State) ApplyMove(move *Move) {
-	//piece := s.Board.GetPiece(&move.From)
-	//if piece != nil {
-		//piece.moveTo(move.To)
-		//s.Board.RemoveFrom(&move.From)	
-		//s.Board.PlaceOn(piece, &move.To)
-		//s.LastMove = move
-		//s.clearCache()
-		//s.switchTurn()
-	//} else {
-		//println("piece was nil")
-	//}
-//}
 
 func (s *State) ApplyMove(move *Move) (applied bool) {
 	applied = s.applyMoveBool(move)
@@ -118,16 +121,16 @@ func (s *State) ApplyMove(move *Move) (applied bool) {
 	return
 }
 
-func (this *State) isMoveLegal(move *Move) bool {
-	if (len(this.legalMovesCache) != 0) {
-		return slices.ContainsFunc(this.legalMovesCache, func(m *Move) bool {
+func (s *State) isMoveLegal(move *Move) bool {
+	if (len(s.legalMovesCache) != 0) {
+		return slices.ContainsFunc(s.legalMovesCache, func(m *Move) bool {
 			return move.Equal(m)
 		}) 
 	}
 
-	next := this.Copy()
+	next := s.Copy()
 	next.ApplyMove(move)
-	kingPos := next.Board.FindPiece("king", this.Turn)
+	kingPos := next.Board.FindPiece("king", s.Turn)
 	if (len(kingPos) == 0) {
 		return false
 	} 
@@ -139,69 +142,70 @@ func (this *State) isMoveLegal(move *Move) bool {
 	})
 }
 
-func (this *State) GetLegalMoves() []*Move {
+func (s *State) GetLegalMoves() []*Move {
 	var cachedMoves []*Move
-	if len(this.legalMovesCache) == 0 {
-		cachedMoves = this.legalMovesCache
+	if len(s.legalMovesCache) == 0 {
+		cachedMoves = s.legalMovesCache
 	} else {
-		cachedMoves = this.legalMovesOrderedCache
+		cachedMoves = s.legalMovesOrderedCache
 	}
 	if (len(cachedMoves) != 0) { return cachedMoves }
 
 
-	possibleMoves := this.GetPossibleMoves()
-	this.legalMovesCache = slices.DeleteFunc(possibleMoves, func(m *Move) bool {
-		return m == nil || !this.isMoveLegal(m)
+	possibleMoves := s.GetPossibleMoves()
+	s.legalMovesCache = slices.DeleteFunc(possibleMoves, func(m *Move) bool {
+		return m == nil || !s.isMoveLegal(m)
 	})
-	return this.legalMovesCache
+	return s.legalMovesCache
 }
 
-func (this *State) IsGameOver() bool {
-	return this.IsCheckmate() || this.IsStalemate()
+func (s *State) IsGameOver() bool {
+	return s.IsCheckmate() || s.IsStalemate()
 }
 
-func (this *State) IsCheckmate() bool {
-	if legalMoves := this.GetLegalMoves(); len(legalMoves) == 0 {
-		kingPos := this.Board.FindPiece("king", this.Turn)
+func (s *State) IsCheckmate() bool {
+	if legalMoves := s.GetLegalMoves(); len(legalMoves) == 0 {
+		kingPos := s.Board.FindPiece("king", s.Turn)
 		if len(kingPos) == 0 { return false }
-		copy := this.Copy()
+		copy := s.Copy()
 		copy.switchTurn()
 		if slices.ContainsFunc(copy.GetPossibleMoves(), func(m *Move) bool {
 			return m.To.Equal(*kingPos[0])
 		}) {
-			//fmt.Println("CHECKMATE")
 			return true
 		}
 	}
 	return false
 }
 
-func (this *State) IsStalemate() bool {
-	if len(this.GetLegalMoves()) == 0 && !this.IsCheckmate() {
+func (s *State) IsStalemate() bool {
+	if len(s.GetLegalMoves()) == 0 && !s.IsCheckmate() {
 		//fmt.Println("STALEMATE")
 		return true
 	}
 	return false
 }
 
-
-func (this *State) Copy() *State {
-	newBoard := this.Board.copy()
+func (s *State) Copy() *State {
+	newBoard := s.Board.copy()
 	return &State{
 		Board: newBoard,
-		Turn: this.Turn,
-		LastMove: this.LastMove,
-		possibleMovesCache: nil,
-		legalMovesCache: nil,
-		legalMovesOrderedCache: nil,
+		Turn: s.Turn,
+		LastMove: s.LastMove,
+		possibleMovesCache: []*Move{},
+		legalMovesCache: []*Move{},
+		legalMovesOrderedCache: []*Move{},
 	}
 }
 
-func (this *State) Equal(other *State) bool {
-	return this.Board.Equal(other.Board) && this.Turn == other.Turn
+func (s *State) Equal(other *State) bool {
+	return s.Board.Equal(other.Board) && s.Turn == other.Turn
 }
 
-func (this *State) String() string {
-	return this.Board.String()
+func (s *State) String() string {
+	return s.Board.String()
 }
 
+func (s *State) isCopy() bool {
+	return s.Board.isCopy
+}

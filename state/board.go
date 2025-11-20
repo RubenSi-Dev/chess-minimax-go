@@ -1,7 +1,6 @@
 package state
 
 import (
-	//"fmt"
 	"reflect"
 )
 
@@ -21,6 +20,7 @@ type Board struct {
 	piecesCache []*Piece
 	squaresControlledCache map[string]([]*Position)
 	kingsPositionCache map[string]*Position
+	isCopy bool
 }
 
 func createBoard(setup string) (result *Board) {
@@ -35,6 +35,7 @@ func createBoard(setup string) (result *Board) {
 			"white": nil,
 			"black": nil,
 		},
+		false,
 	}
 	result.initBoard(setup)
 	return
@@ -211,5 +212,6 @@ func (b *Board) copy() (copy *Board) {
 			}
 		}
 	}
+	copy.isCopy = true
 	return
 }

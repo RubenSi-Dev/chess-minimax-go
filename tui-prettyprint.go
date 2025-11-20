@@ -104,11 +104,14 @@ func BoardString(b *chess.Board, sel []chess.Position, cursor chess.Position) (r
 	result += greenSquare.Sprintln("                                                                  ")
 	result += greenSquare.Sprintln("        A      B      C      D      E      F      G      H        ")
 	result += greenSquare.Sprintln("                                                                  ")
-	for k := range b.Grid {
-		i := len(b.Grid) - k - 1
-		rank := b.Grid[i]
-		result += printRank(rank, i % 2 == 0, i+1, sel, cursor)	
-	}
+	result += printRank(b.Grid[7], false, 8, sel, cursor)
+	result += printRank(b.Grid[6], true, 7, sel, cursor)
+	result += printRank(b.Grid[5], false, 6, sel, cursor)
+	result += printRank(b.Grid[4], true, 5, sel, cursor)
+	result += printRank(b.Grid[3], false, 4, sel, cursor)
+	result += printRank(b.Grid[2], true, 3, sel, cursor)
+	result += printRank(b.Grid[1], false, 2, sel, cursor)
+	result += printRank(b.Grid[0], true, 1, sel, cursor)
 	result += greenSquare.Sprintln("                                                                  ")
 	result += greenSquare.Sprintln("        A      B      C      D      E      F      G      H        ")
 	result += greenSquare.Sprintln("                                                                  ")
