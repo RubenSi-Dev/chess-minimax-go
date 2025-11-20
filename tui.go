@@ -30,6 +30,21 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
+type BotMoveMsg struct {
+	move *chess.Move
+	score float64
+}
+
+func getBotMove(s *chess.State, depth int) tea.Cmd {
+	return func() tea.Msg {
+		move, score := ai.SelectMove(s, depth)
+		return BotMoveMsg{
+			move: move,
+			score: score,
+		}
+	}
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	//key press
@@ -70,13 +85,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 				m.selected = []chess.Position{}
 				if ok {
-					var botmove *chess.Move
-					botmove, botEvaln = ai.SelectMove(m.game.State, 4)
-					m.game.PlayMove(botmove)
+					return m, getBotMove(m.game.State, 3)
 				}
 			}
 		}
+	case BotMoveMsg:
+		m.game.PlayMove(msg.move)
+		return m, nil
 	}
+
 	return m, nil
 }
 
