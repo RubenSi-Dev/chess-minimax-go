@@ -27,12 +27,17 @@ func (g *Game) PlayMove(move *state.Move) bool {
 	//fmt.Println(move.ToAlgebraic())
 	legalMoves := g.State.GetLegalMoves()
 	//fmt.Println(legalMoves)
+	var legalMove *state.Move
 	isLegal := slices.ContainsFunc(legalMoves, func(m *state.Move) bool {
-		return m.Equal(move)
+		if m.Equal(move) {
+			legalMove = m
+			return true
+		}
+		return false
 	}) 
 
 	if isLegal {
-		g.State.ApplyMove(move)
+		g.State.ApplyMove(legalMove)
 		return true
 	}
 	return false

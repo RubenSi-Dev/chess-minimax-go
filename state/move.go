@@ -8,18 +8,23 @@ import (
 type Move struct {
 	From Position
 	To Position	
-	//Promotion bool
-	//Capture bool
+	Promotion string
 }
 
 func CreateMove(from Position, to Position) (result *Move) {
 	result = &Move{
 		From: from,
 		To: to,
-		//Promotion: prom,
-		//Capture: capt,
 	}
 	return
+}
+
+func CreateMovePromotion(from Position, to Position, prom string) (result *Move) {
+	return &Move{
+		From: from,
+		To: to,
+		Promotion: prom,
+	}
 }
 
 func (this *Move) Equal(other *Move) bool {
@@ -49,3 +54,4 @@ func FromAlgebraicToMove(alg string) *Move {
 		To: *fromAlgebraic(algs[1]),
 	}
 }
+

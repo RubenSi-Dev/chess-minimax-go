@@ -7,7 +7,9 @@ import (
 
 var setups = []string{
 	"default",
+	"promotion",
 	"clear",
+	"castling",
 }
 
 var algebraicLetters = []string{"A", "B", "C", "D", "E", "F", "G", "H"}
@@ -61,7 +63,32 @@ func (b *Board) initBoard(setup string) {
 		return
 	case "default":
 		b.defaultSetup()
+	case "promotion":
+		b.promotionSetup()
+	case "castling":
+		b.castlingSetup()
 	}
+}
+
+func (b *Board) castlingSetup() {
+	//kings
+	b.placeNew("white", "king", Position{X: 4, Y: 0})
+	b.placeNew("black", "king", Position{X: 4, Y: 7})
+
+	b.placeNew("white", "rook", Position{X: 0, Y: 0})
+	b.placeNew("white", "rook", Position{X: 7, Y: 0})
+	b.placeNew("black", "rook", Position{X: 0, Y: 7})
+	b.placeNew("black", "rook", Position{X: 7, Y: 7})
+}
+
+func (b *Board) promotionSetup() {
+	//kings
+	b.placeNew("white", "king", Position{X: 4, Y: 5})
+	b.placeNew("black", "king", Position{X: 7, Y: 7})
+
+	//pawns
+	b.placeNew("white", "pawn", Position{X: 3, Y: 6})
+	b.placeNew("black", "pawn", Position{X: 7, Y: 6})
 }
 
 func (b *Board) defaultSetup() {

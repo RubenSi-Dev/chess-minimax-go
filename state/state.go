@@ -2,7 +2,7 @@ package state
 
 import (
 	"slices"
-	"fmt"
+	//"fmt"
 )
 
 type State struct {
@@ -57,18 +57,65 @@ func (s *State) GetPossibleMoves() []*Move {
 	return s.possibleMovesCache
 }
 
-func (s *State) ApplyMove(move *Move) {
-	piece := s.Board.GetPiece(&move.From)
+
+func (this *State) applyMoveBool(move *Move) bool {
+	piece := this.Board.GetPiece(&move.From) 
 	if piece != nil {
-		piece.moveTo(move.To)
-		s.Board.RemoveFrom(&move.From)	
-		s.Board.PlaceOn(piece, &move.To)
-		s.LastMove = move
-		s.clearCache()
-		s.switchTurn()
-	} else {
-		println("piece was nil")
+		if move.Promotion == "queen" {
+			this.Board.RemoveFrom(&move.From)
+			newPiece := this.Board.placeNew(piece.Color, move.Promotion, move.To)
+			newPiece.HasMoved = true
+			this.LastMove = move
+			//fmt.Println(this.Board)
+			return true
+		}	else {
+			if piece.Type == "king" && !piece.HasMoved {
+				if move.From.X - move.To.X == -2 {
+					rookFrom := Position{
+						X: move.From.X + 3,
+						Y: move.From.Y,
+					}
+					rookTo := Position{
+						X: move.From.X + 1, 
+						Y: move.From.Y,
+					}
+					rookMove := CreateMove(rookFrom, rookTo)
+
+					if ( !this.applyMoveBool(rookMove) ) { return false }
+				}
+			}
+			piece.moveTo(move.To)
+			this.Board.RemoveFrom(&move.From)
+			this.Board.PlaceOn(piece, &move.To)
+			this.LastMove = move
+		}
+		return true
 	}
+	return false
+}
+
+//func (s *State) ApplyMove(move *Move) {
+	//piece := s.Board.GetPiece(&move.From)
+	//if piece != nil {
+		//piece.moveTo(move.To)
+		//s.Board.RemoveFrom(&move.From)	
+		//s.Board.PlaceOn(piece, &move.To)
+		//s.LastMove = move
+		//s.clearCache()
+		//s.switchTurn()
+	//} else {
+		//println("piece was nil")
+	//}
+//}
+
+func (s *State) ApplyMove(move *Move) (applied bool) {
+	applied = s.applyMoveBool(move)
+
+	if applied {
+		s.switchTurn()
+		s.clearCache()
+	}
+	return
 }
 
 func (this *State) isMoveLegal(move *Move) bool {
@@ -122,7 +169,7 @@ func (this *State) IsCheckmate() bool {
 		if slices.ContainsFunc(copy.GetPossibleMoves(), func(m *Move) bool {
 			return m.To.Equal(*kingPos[0])
 		}) {
-			fmt.Println("CHECKMATE")
+			//fmt.Println("CHECKMATE")
 			return true
 		}
 	}
@@ -131,7 +178,7 @@ func (this *State) IsCheckmate() bool {
 
 func (this *State) IsStalemate() bool {
 	if len(this.GetLegalMoves()) == 0 && !this.IsCheckmate() {
-		fmt.Println("STALEMATE")
+		//fmt.Println("STALEMATE")
 		return true
 	}
 	return false

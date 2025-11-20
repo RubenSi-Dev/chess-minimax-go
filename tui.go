@@ -19,7 +19,7 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		game: StartGame("default"),
+		game: StartGame("castling"),
 		selected: []chess.Position{},
 	}
 }
