@@ -91,7 +91,7 @@ func (s *State) applyMoveBool(move *Move) bool {
 							Y: move.From.Y,
 						},
 						Position{
-							X: move.To.X - 1,
+							X: move.From.X - 1,
 							Y: move.From.Y,
 						},
 					)

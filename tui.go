@@ -10,6 +10,8 @@ import (
 	ai "github.com/spunker/chess/ai"
 )
 
+var botEvaln float64
+
 type model struct {
 	game *Game
 	cursor chess.Position
@@ -19,7 +21,7 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		game: StartGame("castling"),
+		game: StartGame("default"),
 		selected: []chess.Position{},
 	}
 }
@@ -68,7 +70,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				})
 				m.selected = []chess.Position{}
 				if ok {
-					botmove, _ := ai.SelectMove(m.game.State, 3)
+					var botmove *chess.Move
+					botmove, botEvaln = ai.SelectMove(m.game.State, 4)
 					m.game.PlayMove(botmove)
 				}
 			}
@@ -85,7 +88,7 @@ func (m model) View() string {
 func StartTui() {
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("alas, there's been an eeror: %v", err)
+		fmt.Printf("alas, there's been an error: %v", err)
 		os.Exit(1)
 	}
 }
