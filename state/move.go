@@ -33,12 +33,6 @@ func (this *Move) Equal(other *Move) bool {
 
 func (m *Move) String() (result string) {
 	result = fmt.Sprintf("{%v, %v", m.From, m.To)
-	//if m.Promotion {
-	//	result += ", Promotion"
-	//}
-	//if m.Capture {
-		//result += ", Capture"
-	//}
 	result += "}"
 	return
 }

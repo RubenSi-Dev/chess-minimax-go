@@ -13,7 +13,7 @@ func main() {
 
 func _test() {
 	g := StartGame("default")
-	
+
 	fmt.Println(g)
 
 	m1 := state.CreateMove(
@@ -43,5 +43,3 @@ func _test() {
 	fmt.Println(g.PlayMove(m1))
 	fmt.Println(g)
 }
-
-

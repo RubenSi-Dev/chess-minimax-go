@@ -41,12 +41,12 @@ func evalMobility(s *state.State) (result int) {
 	return
 }
 
-func EvalState(s *state.State) (result float64) {
-	weights := map[string]float64 {
-		"material": 2.0,
-		"mobility": 0.5,
-	}
+type Weights struct {
+	Material float64 
+	Mobility float64
+}
 
-	return weights["material"]*float64(evalMaterial(s)) + weights["mobility"]*float64(evalMobility(s))
+func EvalState(s *state.State, weights *Weights) (result float64) {
+	return weights.Material*float64(evalMaterial(s)) + weights.Mobility*float64(evalMobility(s))
 }
 

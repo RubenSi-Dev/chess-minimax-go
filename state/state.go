@@ -7,7 +7,7 @@ import (
 type State struct {
 	Board *Board
 	Turn string
-	previousMoves []*Move
+	PreviousMoves []*Move
 	possibleMovesCache []*Move
 	legalMovesCache []*Move
 	legalMovesOrderedCache []*Move
@@ -18,12 +18,13 @@ func CreateState(setup string) *State {
 	return &State{
 		Board: createBoard(setup),
 		Turn: "white",
-		previousMoves: []*Move{},
+		PreviousMoves: []*Move{},
 		possibleMovesCache: []*Move{},
 		legalMovesCache: []*Move{},
 		legalMovesOrderedCache: []*Move{},
 	}	
 }
+
 
 func (s *State) clearCache() {
 	s.possibleMovesCache = []*Move{}
@@ -64,7 +65,7 @@ func (s *State) applyMoveBool(move *Move) bool {
 			s.Board.RemoveFrom(&move.From)
 			newPiece := s.Board.placeNew(piece.Color, move.Promotion, move.To)
 			newPiece.HasMoved = true
-			s.previousMoves = append(s.previousMoves, move) 
+			s.PreviousMoves = append(s.PreviousMoves, move) 
 			return true
 		}	else {
 			if piece.Type == "king" {
@@ -107,7 +108,7 @@ func (s *State) applyMoveBool(move *Move) bool {
 			piece.moveTo(move.To)
 			s.Board.RemoveFrom(&move.From)
 			s.Board.PlaceOn(piece, &move.To)
-			s.previousMoves = append(s.previousMoves, move)
+			s.PreviousMoves = append(s.PreviousMoves, move)
 		}
 		return true
 	}
@@ -196,7 +197,7 @@ func (s *State) Copy() *State {
 	return &State{
 		Board: newBoard,
 		Turn: s.Turn,
-		previousMoves: s.previousMoves,
+		PreviousMoves: s.PreviousMoves,
 		possibleMovesCache: []*Move{},
 		legalMovesCache: []*Move{},
 		legalMovesOrderedCache: []*Move{},

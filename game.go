@@ -7,16 +7,16 @@ import (
 )
 
 type Game struct {
-	State *state.State
-	Over bool
-	Moves int
+	State                *state.State
+	Over                 bool
+	Moves                int
 	legalMovesPreProcess []*state.Move
 }
 
 func StartGame(setup string) (result *Game) {
 	result = &Game{
 		State: state.CreateState(setup),
-		Over: false,
+		Over:  false,
 		Moves: 0,
 	}
 	result.legalMovesPreProcess = result.State.GetLegalMoves()
@@ -36,7 +36,7 @@ func (g *Game) PlayMove(move *state.Move) bool {
 			return true
 		}
 		return false
-	}) 
+	})
 
 	if isLegal {
 		g.State.ApplyMove(legalMove)
