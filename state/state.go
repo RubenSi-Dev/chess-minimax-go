@@ -4,15 +4,19 @@ import (
 	"slices"
 )
 
+
+// State - represents the current state of a chess game
 type State struct {
-	Board *Board
-	Turn string
+	Board *Board 										// Board representation
+	Turn string 										// "white" or "black"
 	PreviousMoves []*Move
 	possibleMovesCache []*Move
 	legalMovesCache []*Move
 	legalMovesOrderedCache []*Move
 }
 
+
+// CreateState - creates a new game state with the given setup
 func CreateState(setup string) *State {
 	if !(slices.Contains(setups, setup)) { setup = "clear" }
 	return &State{
@@ -26,12 +30,15 @@ func CreateState(setup string) *State {
 }
 
 
+// clearCache - clears cached possible and legal moves
+// usually called when the state changes (a move is played)
 func (s *State) clearCache() {
 	s.possibleMovesCache = []*Move{}
 	s.legalMovesCache = []*Move{}
 	s.legalMovesOrderedCache = []*Move{}
 	s.Board.clearCache()
 }
+
 
 func (s *State) switchTurn() string {
 	white := s.Turn == "white"
@@ -43,6 +50,10 @@ func (s *State) switchTurn() string {
 	return s.Turn
 }
 
+
+// GetPossibleMoves - get all possible moves in the current state (inoring illegal moves by board context)
+// ranges over board.GetPieces() and appends it to the result (saves it in cache too)
+// first checks whether its already in cache
 func (s *State) GetPossibleMoves() []*Move {
 	if (len(s.possibleMovesCache) != 0) { return s.possibleMovesCache }
 
@@ -50,7 +61,6 @@ func (s *State) GetPossibleMoves() []*Move {
 	for _, piece := range pieces {
 		if piece.Color == s.Turn {
 			moves := piece.GetPossibleMoves(s.Board)
-			//fmt.Printf("calculated moves for %v: %v\n", piece.Symbol(), moves)
 			s.possibleMovesCache = append(s.possibleMovesCache, moves...)
 		}
 	}
@@ -58,6 +68,8 @@ func (s *State) GetPossibleMoves() []*Move {
 }
 
 
+// applyMoveBool - helper function that returns true if the move is possible
+// helpful for moves like castling where two pieces have to move
 func (s *State) applyMoveBool(move *Move) bool {
 	piece := s.Board.GetPiece(&move.From) 
 	if piece != nil {
@@ -115,6 +127,8 @@ func (s *State) applyMoveBool(move *Move) bool {
 	return false
 }
 
+
+// ApplyMove - wrapper function for applyMoveBool, then switches the turn
 func (s *State) ApplyMove(move *Move) (applied bool) {
 	applied = s.applyMoveBool(move)
 
@@ -126,6 +140,9 @@ func (s *State) ApplyMove(move *Move) (applied bool) {
 }
 
 
+// isMoveLegal - checks whether a *possiblemove* is also *legal* 
+// its legal if your own king is not in check after the move is completed
+// required to make a deepcopy of this state, play the move, and see if there are problems 
 func (s *State) isMoveLegal(move *Move) bool {
 	if (len(s.legalMovesCache) != 0) {
 		return slices.ContainsFunc(s.legalMovesCache, func(m *Move) bool {
@@ -140,7 +157,6 @@ func (s *State) isMoveLegal(move *Move) bool {
 		return false
 	} 
 
-	// condition 1
 	controlledSquares := next.Board.squaresControlledBy(next.Turn);
 	return !slices.ContainsFunc(controlledSquares, func(p *Position) bool {
 		return p.Equal(*kingPos[0])	
@@ -165,10 +181,15 @@ func (s *State) GetLegalMoves() []*Move {
 }
 
 
+
 func (s *State) IsGameOver() bool {
 	return s.IsCheckmate() || s.IsStalemate()
 }
 
+
+// IsCheckmate
+// check by switching turns and seeing if the player has any legal moves
+// also checks for stalemate
 func (s *State) IsCheckmate() bool {
 	if legalMoves := s.GetLegalMoves(); len(legalMoves) == 0 {
 		kingPos := s.Board.FindPiece("king", s.Turn)
@@ -192,18 +213,21 @@ func (s *State) IsStalemate() bool {
 	return false
 }
 
+// Copy - makes a deep copy of the state
+// deepcopy -> all pieces on the board most be copied and so on
 func (s *State) Copy() *State {
 	newBoard := s.Board.copy()
 	return &State{
 		Board: newBoard,
 		Turn: s.Turn,
-		PreviousMoves: s.PreviousMoves,
+		PreviousMoves: []*Move{},
 		possibleMovesCache: []*Move{},
 		legalMovesCache: []*Move{},
 		legalMovesOrderedCache: []*Move{},
 	}
 }
 
+// some helper functions
 func (s *State) Equal(other *State) bool {
 	return s.Board.Equal(other.Board) && s.Turn == other.Turn
 }

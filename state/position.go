@@ -7,6 +7,7 @@ import (
 	"slices"
 )
 
+// Position - represents a position on the chess board
 type Position struct {
 	X int
 	Y int

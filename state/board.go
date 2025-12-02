@@ -4,6 +4,7 @@ import (
 	"reflect"
 )
 
+// go doesn't have an enum type, so we use a slice of strings to represent possible setups 
 var setups = []string{
 	"default",
 	"promotion",
@@ -11,10 +12,15 @@ var setups = []string{
 	"castling",
 }
 
+// used for algebraic notation
 var algebraicLetters = []string{"A", "B", "C", "D", "E", "F", "G", "H"}
 
+// grid - 8x8 grid of pointers to pieces
 type grid [][]*Piece
 
+
+// Board - represents the chess board and its pieces
+// caching to avoid recomputation when nothing has changed
 type Board struct {
 	Grid                   grid
 	piecesCache            []*Piece
@@ -23,10 +29,8 @@ type Board struct {
 	isCopy                 bool
 }
 
-func (b *Board) clearKingsPosCash(color string) {
-	b.squaresControlledCache[color] = nil
-}
 
+// createBoard - creates a new board with the given setup
 func createBoard(setup string) (result *Board) {
 	result = &Board{
 		nil,
@@ -45,6 +49,9 @@ func createBoard(setup string) (result *Board) {
 	return
 }
 
+
+// clearCache - clears cached pieces and squares controlled
+// usually called when the board changes (a move is played)
 func (b *Board) clearCache() {
 	for _, piece := range b.piecesCache {
 		piece.clearCache()
@@ -55,6 +62,12 @@ func (b *Board) clearCache() {
 	}
 }
 
+func (b *Board) clearKingsPosCash(color string) {
+	b.squaresControlledCache[color] = nil
+}
+
+
+// initBoard - initializes the board with the given setup, and all setups are defined below
 func (b *Board) initBoard(setup string) {
 	b.Grid = make([][]*Piece, 8)
 	for i := range b.Grid {
@@ -127,6 +140,7 @@ func (b *Board) defaultSetup() {
 	}
 }
 
+// GetPieces - returns a list of all pieces on the board
 func (b *Board) GetPieces() []*Piece {
 	if len(b.piecesCache) == 0 {
 		b.piecesCache = []*Piece{}
@@ -141,6 +155,7 @@ func (b *Board) GetPieces() []*Piece {
 	return b.piecesCache
 }
 
+// GetPiece - returns the piece at the given position, or nil if there is no piece
 func (b *Board) GetPiece(pos *Position) *Piece {
 	if !b.isInBounds(pos) {
 		return nil
@@ -148,6 +163,8 @@ func (b *Board) GetPiece(pos *Position) *Piece {
 	return b.Grid[pos.Y][pos.X]
 }
 
+
+// FindPiece - returns a list of positions of pieces of the given type and color
 func (b *Board) FindPiece(typ string, color string) (result []*Position) {
 	if typ == "king" && b.kingsPositionCache[color] != nil {
 		return []*Position{b.kingsPositionCache[color]}
@@ -164,10 +181,13 @@ func (b *Board) FindPiece(typ string, color string) (result []*Position) {
 	return
 }
 
+// isInBounds - checks whether the given position is within the bounds of the board
 func (b *Board) isInBounds(pos *Position) bool {
 	return (pos.X < len(b.Grid) && pos.X >= 0) && (pos.Y < len(b.Grid[0]) && pos.Y >= 0)
 }
 
+
+// PlaceOn - places the given piece on the given position
 func (b *Board) PlaceOn(piece *Piece, pos *Position) bool {
 	if !b.isInBounds(pos) {
 		return false
@@ -176,6 +196,7 @@ func (b *Board) PlaceOn(piece *Piece, pos *Position) bool {
 	return true
 }
 
+// placeNew - creates a new piece of the given type and color at the given position
 func (b *Board) placeNew(color string, typ string, pos Position) (piece *Piece) {
 	if !b.isInBounds(&pos) {
 		return nil
@@ -186,6 +207,7 @@ func (b *Board) placeNew(color string, typ string, pos Position) (piece *Piece) 
 	return
 }
 
+// RemoveFrom - removes the piece at the given position
 func (b *Board) RemoveFrom(pos *Position) {
 	if !b.isInBounds(pos) {
 		return
@@ -193,6 +215,8 @@ func (b *Board) RemoveFrom(pos *Position) {
 	b.Grid[pos.Y][pos.X] = nil
 }
 
+
+// squaresControlledBy - returns a list of positions controlled by the given color (the squares the color can move to)
 func (b *Board) squaresControlledBy(color string) []*Position {
 	if len(b.squaresControlledCache[color]) == 0 {
 		for _, piece := range b.GetPieces() {
@@ -211,6 +235,7 @@ func (this *Board) Equal(other *Board) bool {
 	return reflect.DeepEqual(this.Grid, other.Grid)
 }
 
+// copy - creates a deep copy of the board (also called by state.Copy())
 func (b *Board) copy() (copy *Board) {
 	copy = createBoard("clear")
 	for y, rank := range b.Grid {

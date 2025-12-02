@@ -9,8 +9,9 @@ import (
 	color "github.com/fatih/color"
 
 	//color "github.com/fatih/color"
-	ai "github.com/spunker/chess/ai"
+	ai "github.com/spunker/chess/ai" 
 	chess "github.com/spunker/chess/state"
+
 )
 
 var botEvaln float64
@@ -57,12 +58,18 @@ type BotMoveMsg struct {
 }
 
 func (m model) getBotMove(s *chess.State, depth int) tea.Cmd {
+	// Wait for 100 ms before returning
 	return func() tea.Msg {
-		move, score := ai.SelectMove(s, depth, &m.menu.weights)
-		return BotMoveMsg{
+		move, score, err := ai.SelectMove(s, depth, &m.menu.weights)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+		result := BotMoveMsg{
 			move:  move,
 			score: score,
 		}
+		fmt.Printf("result botmovemsg: %v", result.move.ToAlgebraic())
+		return result
 	}
 }
 

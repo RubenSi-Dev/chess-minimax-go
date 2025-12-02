@@ -5,6 +5,7 @@ import (
 	"slices"
 )
 
+// pieceTypes - valid piece types
 var pieceTypes = []string{
 	"rook",
 	"bishop",
@@ -14,6 +15,7 @@ var pieceTypes = []string{
 	"pawn",
 }
 
+// piecesWorth - worth of each piece type
 var piecesWorth = map[string]int{
 	"rook": 5,
 	"bishop": 3,
@@ -22,6 +24,7 @@ var piecesWorth = map[string]int{
 	"pawn": 1,
 }
 
+// piecesSymbols - unicode symbols for each piece type and color
 var piecesSymbols = map[string](map[string]string) {
 	"rook": map[string]string{"white": "\u2656", "black": "\u265C"},
 	"bishop": map[string]string{"white": "\u2657", "black": "\u265D"},
@@ -31,6 +34,9 @@ var piecesSymbols = map[string](map[string]string) {
 	"pawn": map[string]string{"white": "\u2664", "black": "\u2660"},
 }
 
+
+// Piece - represents a chess piece
+// didn't use an interface because it didn't give much benefit (in go interfaces are implicit)
 type Piece struct {
 	Color string
 	Type string
@@ -40,19 +46,26 @@ type Piece struct {
 	possibleMovesCache []*Move
 }
 
+
+// direction - helper struct for ray and step moves
 type direction struct {
 	Dx int
 	Dy int
 }
 
+// typeIsValid - checks whether the piece type is valid (rook, bishop, knight, king, queen, pawn)
 func typeIsValid(typ string) bool {
 	return slices.Contains(pieceTypes, typ)
 }
 
+// colorIsValid - checks whether the piece color is valid (white or black)
 func colorIsValid(color string) bool {
 	return color == "white" || color == "black"
 }
 
+
+
+// createPiece - creates a new piece if the type and color are valid, otherwise returns nil
 func createPiece(color string, typ string, pos Position) *Piece {
 	if typeIsValid(typ) && colorIsValid(color) {
 		return &Piece{
@@ -67,6 +80,8 @@ func createPiece(color string, typ string, pos Position) *Piece {
 	return nil
 }
 
+// GetPossibleMoves - get all *possible* moves of the pieces on the given board
+// switches over piece type and calls the appropriate helper function
 func (p *Piece) GetPossibleMoves(board *Board) []*Move {
 	if len(p.possibleMovesCache) != 0 {
 		return p.possibleMovesCache
@@ -90,6 +105,8 @@ func (p *Piece) GetPossibleMoves(board *Board) []*Move {
 	return p.possibleMovesCache
 }
 
+
+// rayMoves - helper function for pieces that move in rays (rook, bishop, queen)
 func (p *Piece) rayMoves(board *Board, directions *[]direction) (possibleMoves []*Move) {
 	possibleMoves = []*Move{}
 	for _, d := range *directions {
@@ -111,6 +128,8 @@ func (p *Piece) rayMoves(board *Board, directions *[]direction) (possibleMoves [
 	return
 }
 
+
+// stepMoves - helper function for pieces that move in steps (king, knight)
 func (p *Piece) stepMoves(board *Board, directions *[]direction) (possibleMoves []*Move) {
 	possibleMoves = []*Move{}
 	for _, d := range *directions {
@@ -131,20 +150,25 @@ func (p *Piece) stepMoves(board *Board, directions *[]direction) (possibleMoves 
 	return
 }
 
+
+// clearCache - clears the possible moves cache
 func (p *Piece) clearCache() {
 	p.possibleMovesCache = []*Move{}
 }
 
+// moveTo - moves the piece to the given position and marks it as having moved
 func (p *Piece) moveTo(pos Position) {
 	p.Pos = pos
 	p.HasMoved = true
 	p.clearCache()
 }
 
+
 func (p *Piece) String() string {
 	return fmt.Sprintf("{color: %v, type: %v, pos: %v, hasMoved: %v}", p.Color, p.Type, p.Pos, p.HasMoved)
 }
 
+// copy - creates a opy of the piece  used for simulating moves
 func (p *Piece) copy() *Piece {
 	if p == nil {
 		fmt.Println("piece is nil")
