@@ -13,14 +13,18 @@ type Game struct {
 	legalMovesPreProcess []*state.Move
 }
 
-func StartGame(setup string) (result *Game) {
-	result = &Game{
-		State: state.CreateState(setup),
+func StartGame(setup string) (*Game, error) {
+	newState, err := state.CreateState(setup)
+	if err != nil {
+		return nil, err
+	}
+	result := &Game{
+		State: newState,
 		Over:  false,
 		Moves: 0,
 	}
 	result.legalMovesPreProcess = result.State.GetLegalMoves()
-	return
+	return result, nil
 }
 
 func (g *Game) PlayMoveAlgebraic(alg string) bool {

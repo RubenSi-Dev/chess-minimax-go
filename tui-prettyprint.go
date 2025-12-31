@@ -142,9 +142,9 @@ func (m model) boardView() (result string) {
 	if m.menu.playerColor == "black" {
 		return m.boardViewBlack()
 	}
-	
+
 	var lastMoveString string
-	if (len(m.game.State.PreviousMoves) > 0) {
+	if len(m.game.State.PreviousMoves) > 0 {
 		lastMoveString = m.game.State.PreviousMoves[len(m.game.State.PreviousMoves)-1].ToAlgebraic()
 	} else {
 		lastMoveString = ""
@@ -168,7 +168,7 @@ func (m model) boardView() (result string) {
 }
 
 func (m model) boardViewBlack() (result string) {
-	 result += "\n"
+	result += "\n"
 	result += spacingBefore + greenSquare.Sprintln("        A      B      C      D      E      F      G      H        ")
 	result += spacingBefore + greenSquare.Sprintln("                                                                  ")
 	result += printRankReverse(m.game.State.Board.Grid[0], false, 1, m.selected, m.cursor, fmt.Sprintf("       advantage for white: %v", GetMaterialStats(m.game.State.Board).GetAdvantage("white")))

@@ -3,9 +3,9 @@ package ai
 import (
 	"github.com/spunker/chess/state"
 )
+
 // Heuristic evaluation functions, returning a score for a given state
 // I could write more advanced heuristics, but for now I kept it simple
-
 
 // getMaterialStat - (helperfunction) returns a map with the total material worth for each color
 func getMaterialStat(s *state.State) (result map[string]int) {
@@ -20,7 +20,6 @@ func getMaterialStat(s *state.State) (result map[string]int) {
 	return
 }
 
-
 // evalMaterial - evaluates the material balance of the state (uses getMaterialStat)
 // higher is better for white
 func evalMaterial(s *state.State) int {
@@ -28,7 +27,7 @@ func evalMaterial(s *state.State) int {
 	return stats["white"] - stats["black"]
 }
 
-// pieceMobility - h(helperfunction) returns the mobility score of a piece (number of possible moves)
+// pieceMobility - (helperfunction) returns the mobility score of a piece (number of possible moves)
 func pieceMobility(board *state.Board, piece *state.Piece) int {
 	return len(piece.GetPossibleMoves(board))
 
@@ -50,13 +49,11 @@ func evalMobility(s *state.State) (result int) {
 
 // Weights - weights for different evaluation components
 type Weights struct {
-	Material float64 
+	Material float64
 	Mobility float64
 }
-
 
 // EvalState - evaluates the state using weighted sum of different heuristics
 func EvalState(s *state.State, weights *Weights) (result float64) {
 	return weights.Material*float64(evalMaterial(s)) + weights.Mobility*float64(evalMobility(s))
 }
-

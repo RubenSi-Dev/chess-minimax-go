@@ -9,42 +9,41 @@ import (
 	color "github.com/fatih/color"
 
 	//color "github.com/fatih/color"
-	ai "github.com/spunker/chess/ai" 
+	ai "github.com/spunker/chess/ai"
 	chess "github.com/spunker/chess/state"
-
 )
 
 var botEvaln float64
 
 type Menu struct {
 	playerColor string
-	setup string
-	botDepth int
-	weights ai.Weights
+	setup       string
+	botDepth    int
+	weights     ai.Weights
 }
 
 type model struct {
-	game        *Game
-	cursor      chess.Position
-	selected    []chess.Position
-	inMenu      bool
-	menu Menu	
+	game       *Game
+	cursor     chess.Position
+	selected   []chess.Position
+	inMenu     bool
+	menu       Menu
 	menuCursor int
 }
 
 func initialModel() model {
 	return model{
-		inMenu:      true,
+		inMenu: true,
 		menu: Menu{
 			playerColor: "white",
-			setup: "default",
-			botDepth: 3,
+			setup:       "default",
+			botDepth:    3,
 			weights: ai.Weights{
 				Material: 2.0,
 				Mobility: 0.5,
 			},
 		},
-		menuCursor:  0,
+		menuCursor: 0,
 	}
 }
 
@@ -95,9 +94,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 1: // setup
 					choices := []string{"default", "castling", "promotion", "clear"}
 					if m.game == nil {
-						for i, setup := range choices  {
+						for i, setup := range choices {
 							if setup == m.menu.setup {
-								if i == 0 { 
+								if i == 0 {
 									m.menu.setup = choices[len(choices)-1]
 								} else {
 									m.menu.setup = choices[i-1]
@@ -113,11 +112,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				case 3: // weight material
 					m.menu.weights.Material -= 0.1
-					m.menu.weights.Material = math.Round(m.menu.weights.Material * 10)/10
+					m.menu.weights.Material = math.Round(m.menu.weights.Material*10) / 10
 
 				case 4: // weight mobility
 					m.menu.weights.Mobility -= 0.1
-					m.menu.weights.Mobility = math.Round(m.menu.weights.Mobility * 10)/10
+					m.menu.weights.Mobility = math.Round(m.menu.weights.Mobility*10) / 10
 				}
 
 			case "right", "l":
@@ -132,9 +131,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 1: // setup
 					choices := []string{"default", "castling", "promotion", "clear"}
 					if m.game == nil {
-						for i, setup := range choices  {
+						for i, setup := range choices {
 							if setup == m.menu.setup {
-								if i == len(choices) - 1 {
+								if i == len(choices)-1 {
 									m.menu.setup = choices[0]
 								} else {
 									m.menu.setup = choices[i+1]
@@ -150,13 +149,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				case 3: // weight material
 					m.menu.weights.Material += 0.1
-					m.menu.weights.Material = math.Round(m.menu.weights.Material * 10)/10
+					m.menu.weights.Material = math.Round(m.menu.weights.Material*10) / 10
 
 				case 4: // weight mobility
 					m.menu.weights.Mobility += 0.1
-					m.menu.weights.Mobility = math.Round(m.menu.weights.Mobility * 10)/10
+					m.menu.weights.Mobility = math.Round(m.menu.weights.Mobility*10) / 10
 				}
-				
+
 			case "up", "k":
 				if m.menuCursor > 0 {
 					m.menuCursor--
@@ -170,7 +169,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter", " ":
 				m.inMenu = false
 				if m.game == nil {
-					m.game = StartGame(m.menu.setup)
+					var err error
+					m.game, err = StartGame(m.menu.setup)
+					if err != nil {
+						fmt.Println(err)
+					}
 					m.cursor = chess.Position{
 						X: 4,
 						Y: 4,
@@ -216,7 +219,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inMenu = true
 
 			case "enter", " ":
-				if (m.game.State.Turn == m.menu.playerColor) {
+				if m.game.State.Turn == m.menu.playerColor {
 					m.selected = append(m.selected, m.cursor)
 					if len(m.selected) >= 2 {
 						ok := m.game.PlayMove(&chess.Move{
@@ -250,22 +253,22 @@ func (m model) View() string {
 
 func (m model) getCursorString() (result map[string]string) {
 	result = map[string]string{
-		"playerColor": "  ",
-		"setup": "  ",
-		"botDepth": "  ",
+		"playerColor":     "  ",
+		"setup":           "  ",
+		"botDepth":        "  ",
 		"materialWeights": "  ",
 		"mobilityWeights": "  ",
 	}
 	switch m.menuCursor {
-	case 0: 
+	case 0:
 		result["playerColor"] = " >"
 	case 1:
 		result["setup"] = " >"
-	case 2: 
+	case 2:
 		result["botDepth"] = " >"
-	case 3: 
+	case 3:
 		result["materialWeights"] = " >"
-	case 4: 
+	case 4:
 		result["mobilityWeights"] = " >"
 	}
 	return
