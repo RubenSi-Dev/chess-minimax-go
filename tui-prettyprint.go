@@ -168,13 +168,19 @@ func (m model) boardView() (result string) {
 }
 
 func (m model) boardViewBlack() (result string) {
+	var lastMoveString string
+	if len(m.game.State.PreviousMoves) > 0 {
+		lastMoveString = m.game.State.PreviousMoves[len(m.game.State.PreviousMoves)-1].ToAlgebraic()
+	} else {
+		lastMoveString = ""
+	}
 	result += "\n"
 	result += spacingBefore + greenSquare.Sprintln("        A      B      C      D      E      F      G      H        ")
 	result += spacingBefore + greenSquare.Sprintln("                                                                  ")
 	result += printRankReverse(m.game.State.Board.Grid[0], false, 1, m.selected, m.cursor, fmt.Sprintf("       advantage for white: %v", GetMaterialStats(m.game.State.Board).GetAdvantage("white")))
 	result += printRankReverse(m.game.State.Board.Grid[1], true, 2, m.selected, m.cursor, fmt.Sprintf("       bot evaluation:      %v", botEvaln))
-	result += printRankReverse(m.game.State.Board.Grid[2], false, 3, m.selected, m.cursor, "")
-	result += printRankReverse(m.game.State.Board.Grid[3], true, 4, m.selected, m.cursor, "")
+	result += printRankReverse(m.game.State.Board.Grid[2], false, 3, m.selected, m.cursor, fmt.Sprintf("       to move:             %v", m.game.State.Turn))
+	result += printRankReverse(m.game.State.Board.Grid[3], true, 4, m.selected, m.cursor, fmt.Sprintf("       last move:           %v", lastMoveString))
 	result += printRankReverse(m.game.State.Board.Grid[4], false, 5, m.selected, m.cursor, "")
 	result += printRankReverse(m.game.State.Board.Grid[5], true, 6, m.selected, m.cursor, "")
 	result += printRankReverse(m.game.State.Board.Grid[6], false, 7, m.selected, m.cursor, "")

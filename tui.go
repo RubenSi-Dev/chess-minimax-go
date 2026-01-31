@@ -193,13 +193,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 
 			case "up", "k":
-				if m.cursor.Y < 7 {
-					m.cursor.Y++
+				if m.menu.playerColor == "black" {
+					if m.cursor.Y > 0 {
+						m.cursor.Y--
+					}
+				} else {
+					if m.cursor.Y < 7 {
+						m.cursor.Y++
+					}
 				}
 
 			case "down", "j":
-				if m.cursor.Y > 0 {
-					m.cursor.Y--
+				if m.menu.playerColor == "black" {
+					if m.cursor.Y < 7 {
+						m.cursor.Y++
+					}
+				} else {
+					if m.cursor.Y > 0 {
+						m.cursor.Y--
+					}
 				}
 
 			case "left", "h":
