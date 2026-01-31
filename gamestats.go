@@ -10,8 +10,8 @@ func GetMaterialStats(b *chess.Board) (result MaterialStat) {
 	result = MaterialStat{
 		"white": 0,
 		"black": 0,
-	}	
-	
+	}
+
 	for _, piece := range b.GetPieces() {
 		result[piece.Color] += piece.Worth
 	}

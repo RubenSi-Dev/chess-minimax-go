@@ -2,11 +2,12 @@ package state
 
 import (
 	"fmt"
-	"strings"
-	"strconv"
 	"slices"
+	"strconv"
+	"strings"
 )
 
+// Position - represents a position on the chess board
 type Position struct {
 	X int
 	Y int
@@ -14,7 +15,7 @@ type Position struct {
 
 func (this Position) Equal(other Position) bool {
 	return this.X == other.X &&
-	this.Y == other.Y
+		this.Y == other.Y
 }
 
 func (p Position) String() (result string) {
@@ -35,4 +36,3 @@ func fromAlgebraic(alg string) *Position {
 		Y: y - 1,
 	}
 }
-

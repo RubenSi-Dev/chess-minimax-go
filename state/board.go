@@ -1,9 +1,11 @@
 package state
 
 import (
+	"fmt"
 	"reflect"
 )
 
+// go doesn't have an enum type, so we use a slice of strings to represent possible setups
 var setups = []string{
 	"default",
 	"promotion",
@@ -11,10 +13,14 @@ var setups = []string{
 	"castling",
 }
 
+// used for algebraic notation
 var algebraicLetters = []string{"A", "B", "C", "D", "E", "F", "G", "H"}
 
+// grid - 8x8 grid of pointers to pieces
 type grid [][]*Piece
 
+// Board - represents the chess board and its pieces
+// caching to avoid recomputation when nothing has changed
 type Board struct {
 	Grid                   grid
 	piecesCache            []*Piece
@@ -23,11 +29,8 @@ type Board struct {
 	isCopy                 bool
 }
 
-func (b *Board) clearKingsPosCash(color string) {
-	b.squaresControlledCache[color] = nil
-}
-
-func createBoard(setup string) (result *Board) {
+// createBoard - creates a new board with the given setup
+func createBoard(setup string) (result *Board, err error) {
 	result = &Board{
 		nil,
 		[]*Piece{},
@@ -41,10 +44,12 @@ func createBoard(setup string) (result *Board) {
 		},
 		false,
 	}
-	result.initBoard(setup)
+	err = result.initBoard(setup)
 	return
 }
 
+// clearCache - clears cached pieces and squares controlled
+// usually called when the board changes (a move is played)
 func (b *Board) clearCache() {
 	for _, piece := range b.piecesCache {
 		piece.clearCache()
@@ -53,80 +58,149 @@ func (b *Board) clearCache() {
 	for k := range b.squaresControlledCache {
 		b.squaresControlledCache[k] = []*Position{}
 	}
+	//for k := range b.kingsPositionCache {
+	//	b.kingsPositionCache[k] = nil
+	//}
 }
 
-func (b *Board) initBoard(setup string) {
+func (b *Board) clearKingsPosCache(color string) {
+	b.kingsPositionCache[color] = nil
+}
+
+// initBoard - initializes the board with the given setup, and all setups are defined below
+func (b *Board) initBoard(setup string) error {
 	b.Grid = make([][]*Piece, 8)
 	for i := range b.Grid {
 		b.Grid[i] = make([]*Piece, 8)
 	}
 	switch setup {
 	case "clear":
-		return
+		return nil
 	case "default":
-		b.defaultSetup()
+		return b.defaultSetup()
 	case "promotion":
-		b.promotionSetup()
+		return b.promotionSetup()
 	case "castling":
-		b.castlingSetup()
+		return b.castlingSetup()
 	}
+	return nil
 }
 
-func (b *Board) castlingSetup() {
+func (b *Board) castlingSetup() error {
 	//kings
-	b.placeNew("white", "king", Position{X: 4, Y: 0})
-	b.placeNew("black", "king", Position{X: 4, Y: 7})
+	if _, err := b.placeNew("white", "king", Position{X: 4, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "king", Position{X: 4, Y: 7}); err != nil {
+		return err
+	}
 
-	b.placeNew("white", "rook", Position{X: 0, Y: 0})
-	b.placeNew("white", "rook", Position{X: 7, Y: 0})
-	b.placeNew("black", "rook", Position{X: 0, Y: 7})
-	b.placeNew("black", "rook", Position{X: 7, Y: 7})
+	if _, err := b.placeNew("white", "rook", Position{X: 0, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("white", "rook", Position{X: 7, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "rook", Position{X: 0, Y: 7}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "rook", Position{X: 7, Y: 7}); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (b *Board) promotionSetup() {
+func (b *Board) promotionSetup() error {
 	//kings
-	b.placeNew("white", "king", Position{X: 4, Y: 5})
-	b.placeNew("black", "king", Position{X: 7, Y: 7})
+	if _, err := b.placeNew("white", "king", Position{X: 4, Y: 5}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "king", Position{X: 7, Y: 7}); err != nil {
+		return err
+	}
 
 	//pawns
-	b.placeNew("white", "pawn", Position{X: 3, Y: 6})
-	b.placeNew("black", "pawn", Position{X: 7, Y: 6})
+	if _, err := b.placeNew("white", "pawn", Position{X: 3, Y: 6}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "pawn", Position{X: 7, Y: 6}); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (b *Board) defaultSetup() {
+func (b *Board) defaultSetup() error {
 	//rooks
-	b.placeNew("white", "rook", Position{X: 0, Y: 0})
-	b.placeNew("white", "rook", Position{X: 7, Y: 0})
-	b.placeNew("black", "rook", Position{X: 0, Y: 7})
-	b.placeNew("black", "rook", Position{X: 7, Y: 7})
+	if _, err := b.placeNew("white", "rook", Position{X: 0, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("white", "rook", Position{X: 7, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "rook", Position{X: 0, Y: 7}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "rook", Position{X: 7, Y: 7}); err != nil {
+		return err
+	}
 
 	//knights
-	b.placeNew("white", "knight", Position{X: 1, Y: 0})
-	b.placeNew("white", "knight", Position{X: 6, Y: 0})
-	b.placeNew("black", "knight", Position{X: 1, Y: 7})
-	b.placeNew("black", "knight", Position{X: 6, Y: 7})
+	if _, err := b.placeNew("white", "knight", Position{X: 1, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("white", "knight", Position{X: 6, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "knight", Position{X: 1, Y: 7}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "knight", Position{X: 6, Y: 7}); err != nil {
+		return err
+	}
 
 	//bishop
-	b.placeNew("white", "bishop", Position{X: 2, Y: 0})
-	b.placeNew("white", "bishop", Position{X: 5, Y: 0})
-	b.placeNew("black", "bishop", Position{X: 2, Y: 7})
-	b.placeNew("black", "bishop", Position{X: 5, Y: 7})
+	if _, err := b.placeNew("white", "bishop", Position{X: 2, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("white", "bishop", Position{X: 5, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "bishop", Position{X: 2, Y: 7}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "bishop", Position{X: 5, Y: 7}); err != nil {
+		return err
+	}
 
 	//queens
-	b.placeNew("white", "queen", Position{X: 3, Y: 0})
-	b.placeNew("black", "queen", Position{X: 3, Y: 7})
+	if _, err := b.placeNew("white", "queen", Position{X: 3, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "queen", Position{X: 3, Y: 7}); err != nil {
+		return err
+	}
 
 	//kings
-	b.placeNew("white", "king", Position{X: 4, Y: 0})
-	b.placeNew("black", "king", Position{X: 4, Y: 7})
+	if _, err := b.placeNew("white", "king", Position{X: 4, Y: 0}); err != nil {
+		return err
+	}
+	if _, err := b.placeNew("black", "king", Position{X: 4, Y: 7}); err != nil {
+		return err
+	}
 
 	//pawns
 	for i := range 8 {
-		b.placeNew("white", "pawn", Position{X: i, Y: 1})
-		b.placeNew("black", "pawn", Position{X: i, Y: 6})
+		if _, err := b.placeNew("white", "pawn", Position{X: i, Y: 1}); err != nil {
+			return err
+		}
+		if _, err := b.placeNew("black", "pawn", Position{X: i, Y: 6}); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
+// GetPieces - returns a list of all pieces on the board
 func (b *Board) GetPieces() []*Piece {
 	if len(b.piecesCache) == 0 {
 		b.piecesCache = []*Piece{}
@@ -141,13 +215,18 @@ func (b *Board) GetPieces() []*Piece {
 	return b.piecesCache
 }
 
-func (b *Board) GetPiece(pos *Position) *Piece {
-	if !b.isInBounds(pos) {
-		return nil
+// GetPiece - returns the piece at the given position, or nil if there is no piece
+func (b *Board) GetPiece(pos *Position) (*Piece, error) {
+	if b == nil || pos == nil {
+		return nil, fmt.Errorf("board or pos is nil reference")
 	}
-	return b.Grid[pos.Y][pos.X]
+	if !b.isInBounds(pos) {
+		return nil, fmt.Errorf("position is out of bounds")
+	}
+	return b.Grid[pos.Y][pos.X], nil
 }
 
+// FindPiece - returns a list of positions of pieces of the given type and color
 func (b *Board) FindPiece(typ string, color string) (result []*Position) {
 	if typ == "king" && b.kingsPositionCache[color] != nil {
 		return []*Position{b.kingsPositionCache[color]}
@@ -159,15 +238,20 @@ func (b *Board) FindPiece(typ string, color string) (result []*Position) {
 		}
 	}
 	if typ == "king" {
+		if len(result) == 0 {
+			return result
+		}
 		b.kingsPositionCache[color] = result[0]
 	}
 	return
 }
 
+// isInBounds - checks whether the given position is within the bounds of the board
 func (b *Board) isInBounds(pos *Position) bool {
 	return (pos.X < len(b.Grid) && pos.X >= 0) && (pos.Y < len(b.Grid[0]) && pos.Y >= 0)
 }
 
+// PlaceOn - places the given piece on the given position
 func (b *Board) PlaceOn(piece *Piece, pos *Position) bool {
 	if !b.isInBounds(pos) {
 		return false
@@ -176,16 +260,21 @@ func (b *Board) PlaceOn(piece *Piece, pos *Position) bool {
 	return true
 }
 
-func (b *Board) placeNew(color string, typ string, pos Position) (piece *Piece) {
+// placeNew - creates a new piece of the given type and color at the given position
+func (b *Board) placeNew(color string, typ string, pos Position) (*Piece, error) {
 	if !b.isInBounds(&pos) {
-		return nil
+		return nil, fmt.Errorf("piece not in bounds")
 	}
 
-	piece = createPiece(color, typ, pos)
+	piece, err := createPiece(color, typ, pos)
+	if err != nil {
+		return nil, fmt.Errorf("creation of piece failed")
+	}
 	b.Grid[pos.Y][pos.X] = piece
-	return
+	return piece, nil
 }
 
+// RemoveFrom - removes the piece at the given position
 func (b *Board) RemoveFrom(pos *Position) {
 	if !b.isInBounds(pos) {
 		return
@@ -193,26 +282,34 @@ func (b *Board) RemoveFrom(pos *Position) {
 	b.Grid[pos.Y][pos.X] = nil
 }
 
-func (b *Board) squaresControlledBy(color string) []*Position {
+// squaresControlledBy - returns a list of positions controlled by the given color (the squares the color can move to)
+func (b *Board) squaresControlledBy(color string) ([]*Position, error) {
 	if len(b.squaresControlledCache[color]) == 0 {
 		for _, piece := range b.GetPieces() {
 			if piece.Color == color {
-				moves := piece.GetPossibleMoves(b)
+				moves, err := piece.GetPossibleMoves(b)
+				if err != nil {
+					return nil, err
+				}
 				for _, move := range moves {
 					b.squaresControlledCache[color] = append(b.squaresControlledCache[color], &move.To)
 				}
 			}
 		}
 	}
-	return b.squaresControlledCache[color]
+	return b.squaresControlledCache[color], nil
 }
 
 func (this *Board) Equal(other *Board) bool {
 	return reflect.DeepEqual(this.Grid, other.Grid)
 }
 
-func (b *Board) copy() (copy *Board) {
-	copy = createBoard("clear")
+// copy - creates a deep copy of the board (also called by state.Copy())
+func (b *Board) copy() (*Board, error) {
+	copy, err := createBoard("clear")
+	if err != nil {
+		return nil, err
+	}
 	for y, rank := range b.Grid {
 		for x, square := range rank {
 			if square != nil {
@@ -221,5 +318,5 @@ func (b *Board) copy() (copy *Board) {
 		}
 	}
 	copy.isCopy = true
-	return
+	return copy, nil
 }
