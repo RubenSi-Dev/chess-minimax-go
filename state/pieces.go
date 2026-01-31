@@ -78,37 +78,50 @@ func createPiece(color string, typ string, pos Position) (*Piece, error) {
 
 // GetPossibleMoves - get all *possible* moves of the pieces on the given board
 // switches over piece type and calls the appropriate helper function
-func (p *Piece) GetPossibleMoves(board *Board) []*Move {
+func (p *Piece) GetPossibleMoves(board *Board) ([]*Move, error) {
+	var err error
 	if len(p.possibleMovesCache) != 0 {
-		return p.possibleMovesCache
+		return p.possibleMovesCache, nil
 	}
 	switch p.Type {
 	case "rook":
-		p.possibleMovesCache = p.getPossibleMovesRook(board)
+		p.possibleMovesCache, err = p.getPossibleMovesRook(board)
+
 	case "bishop":
-		p.possibleMovesCache = p.getPossibleMovesBishop(board)
+		p.possibleMovesCache, err = p.getPossibleMovesBishop(board)
+
 	case "knight":
-		p.possibleMovesCache = p.getPossibleMovesKnight(board)
+		p.possibleMovesCache, err = p.getPossibleMovesKnight(board)
+
 	case "queen":
-		p.possibleMovesCache = p.getPossibleMovesQueen(board)
+		p.possibleMovesCache, err = p.getPossibleMovesQueen(board)
+
 	case "king":
-		p.possibleMovesCache = p.getPossibleMovesKing(board)
+		p.possibleMovesCache, err = p.getPossibleMovesKing(board)
+
 	case "pawn":
-		p.possibleMovesCache = p.getPossibleMovesPawn(board)
+		p.possibleMovesCache, err = p.getPossibleMovesPawn(board)
+
 	default:
-		return nil
+		return nil, nil
 	}
-	return p.possibleMovesCache
+	if err != nil {
+		return nil, err
+	}
+	return p.possibleMovesCache, nil
 }
 
 // rayMoves - helper function for pieces that move in rays (rook, bishop, queen)
-func (p *Piece) rayMoves(board *Board, directions *[]direction) (possibleMoves []*Move) {
-	possibleMoves = []*Move{}
+func (p *Piece) rayMoves(board *Board, directions *[]direction) ([]*Move, error) {
+	possibleMoves := []*Move{}
 	for _, d := range *directions {
 		x, y := p.Pos.X+d.Dx, p.Pos.Y+d.Dy
 		dst := Position{X: x, Y: y}
 		for board.isInBounds(&dst) {
-			target := board.GetPiece(&dst)
+			target, err := board.GetPiece(&dst)
+			if err != nil {
+				return nil, err
+			}
 			if target == nil {
 				possibleMoves = append(possibleMoves, CreateMove(p.Pos, dst))
 			} else {
@@ -120,17 +133,20 @@ func (p *Piece) rayMoves(board *Board, directions *[]direction) (possibleMoves [
 			dst = Position{X: dst.X + d.Dx, Y: dst.Y + d.Dy}
 		}
 	}
-	return
+	return possibleMoves, nil
 }
 
 // stepMoves - helper function for pieces that move in steps (king, knight)
-func (p *Piece) stepMoves(board *Board, directions *[]direction) (possibleMoves []*Move) {
-	possibleMoves = []*Move{}
+func (p *Piece) stepMoves(board *Board, directions *[]direction) ([]*Move, error) {
+	possibleMoves := []*Move{}
 	for _, d := range *directions {
 		x, y := p.Pos.X+d.Dx, p.Pos.Y+d.Dy
 		dst := Position{X: x, Y: y}
 		if board.isInBounds(&dst) {
-			target := board.GetPiece(&dst)
+			target, err := board.GetPiece(&dst)
+			if err != nil {
+				return nil, err
+			}
 			if target == nil {
 				possibleMoves = append(possibleMoves, CreateMove(p.Pos, dst))
 			} else {
@@ -141,7 +157,7 @@ func (p *Piece) stepMoves(board *Board, directions *[]direction) (possibleMoves 
 		}
 
 	}
-	return
+	return possibleMoves, nil
 }
 
 // clearCache - clears the possible moves cache

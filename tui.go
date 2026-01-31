@@ -67,7 +67,7 @@ func (m model) getBotMove(s *chess.State, depth int) tea.Cmd {
 			move:  move,
 			score: score,
 		}
-		fmt.Printf("result botmovemsg: %v", result.move.ToAlgebraic())
+		//fmt.Printf("result botmovemsg: %v", result.move.ToAlgebraic())
 		return result
 	}
 }
@@ -222,10 +222,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.game.State.Turn == m.menu.playerColor {
 					m.selected = append(m.selected, m.cursor)
 					if len(m.selected) >= 2 {
-						ok := m.game.PlayMove(&chess.Move{
+						ok, err := m.game.PlayMove(&chess.Move{
 							From: m.selected[0],
 							To:   m.selected[1],
 						})
+						if err != nil {
+							fmt.Println(err)
+						}
 						m.selected = []chess.Position{}
 						if ok {
 							return m, m.getBotMove(m.game.State, m.menu.botDepth)

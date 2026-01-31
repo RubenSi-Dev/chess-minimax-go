@@ -58,10 +58,13 @@ func (b *Board) clearCache() {
 	for k := range b.squaresControlledCache {
 		b.squaresControlledCache[k] = []*Position{}
 	}
+	//for k := range b.kingsPositionCache {
+	//	b.kingsPositionCache[k] = nil
+	//}
 }
 
-func (b *Board) clearKingsPosCash(color string) {
-	b.squaresControlledCache[color] = nil
+func (b *Board) clearKingsPosCache(color string) {
+	b.kingsPositionCache[color] = nil
 }
 
 // initBoard - initializes the board with the given setup, and all setups are defined below
@@ -213,11 +216,14 @@ func (b *Board) GetPieces() []*Piece {
 }
 
 // GetPiece - returns the piece at the given position, or nil if there is no piece
-func (b *Board) GetPiece(pos *Position) *Piece {
-	if !b.isInBounds(pos) {
-		return nil
+func (b *Board) GetPiece(pos *Position) (*Piece, error) {
+	if b == nil || pos == nil {
+		return nil, fmt.Errorf("board or pos is nil reference")
 	}
-	return b.Grid[pos.Y][pos.X]
+	if !b.isInBounds(pos) {
+		return nil, fmt.Errorf("position is out of bounds")
+	}
+	return b.Grid[pos.Y][pos.X], nil
 }
 
 // FindPiece - returns a list of positions of pieces of the given type and color
@@ -232,6 +238,9 @@ func (b *Board) FindPiece(typ string, color string) (result []*Position) {
 		}
 	}
 	if typ == "king" {
+		if len(result) == 0 {
+			return result
+		}
 		b.kingsPositionCache[color] = result[0]
 	}
 	return
@@ -274,18 +283,21 @@ func (b *Board) RemoveFrom(pos *Position) {
 }
 
 // squaresControlledBy - returns a list of positions controlled by the given color (the squares the color can move to)
-func (b *Board) squaresControlledBy(color string) []*Position {
+func (b *Board) squaresControlledBy(color string) ([]*Position, error) {
 	if len(b.squaresControlledCache[color]) == 0 {
 		for _, piece := range b.GetPieces() {
 			if piece.Color == color {
-				moves := piece.GetPossibleMoves(b)
+				moves, err := piece.GetPossibleMoves(b)
+				if err != nil {
+					return nil, err
+				}
 				for _, move := range moves {
 					b.squaresControlledCache[color] = append(b.squaresControlledCache[color], &move.To)
 				}
 			}
 		}
 	}
-	return b.squaresControlledCache[color]
+	return b.squaresControlledCache[color], nil
 }
 
 func (this *Board) Equal(other *Board) bool {

@@ -7,6 +7,10 @@ var rookDirections = []direction{
 	{Dx: 0, Dy: -1},
 }
 
-func (p Piece) getPossibleMovesRook(board *Board) []*Move {
-	return p.rayMoves(board, &rookDirections)
+func (p Piece) getPossibleMovesRook(board *Board) ([]*Move, error) {
+	raymoves, err := p.rayMoves(board, &rookDirections)
+	if err != nil {
+		return nil, err
+	}
+	return raymoves, nil
 }

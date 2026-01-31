@@ -23,19 +23,29 @@ func StartGame(setup string) (*Game, error) {
 		Over:  false,
 		Moves: 0,
 	}
-	result.legalMovesPreProcess = result.State.GetLegalMoves()
+	result.legalMovesPreProcess, err = result.State.GetLegalMoves()
+	if err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
-func (g *Game) PlayMoveAlgebraic(alg string) bool {
-	return g.PlayMove(state.FromAlgebraicToMove(alg))
+func (g *Game) PlayMoveAlgebraic(alg string) (bool, error) {
+	res, err := g.PlayMove(state.FromAlgebraicToMove(alg))
+	return res, err
 }
 
-func (g *Game) PlayMove(move *state.Move) bool {
-	legalMoves := g.State.GetLegalMoves()
+func (g *Game) PlayMove(move *state.Move) (bool, error) {
+	legalMoves, err := g.State.GetLegalMoves()
+	if err != nil {
+		return false, err
+	}
 	var legalMove *state.Move
 	isLegal := slices.ContainsFunc(legalMoves, func(m *state.Move) bool {
-		if m.Equal(move) {
+		if res, err := m.Equal(move); res {
+			if err != nil {
+				return false
+			}
 			legalMove = m
 			return true
 		}
@@ -43,11 +53,14 @@ func (g *Game) PlayMove(move *state.Move) bool {
 	})
 
 	if isLegal {
-		g.State.ApplyMove(legalMove)
+		_, err := g.State.ApplyMove(legalMove)
+		if err != nil {
+			return false, err
+		}
 		g.Moves++
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
 func (g *Game) String() string {

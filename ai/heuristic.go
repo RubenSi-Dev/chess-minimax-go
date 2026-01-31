@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"fmt"
+
 	"github.com/spunker/chess/state"
 )
 
@@ -28,23 +30,42 @@ func evalMaterial(s *state.State) int {
 }
 
 // pieceMobility - (helperfunction) returns the mobility score of a piece (number of possible moves)
-func pieceMobility(board *state.Board, piece *state.Piece) int {
-	return len(piece.GetPossibleMoves(board))
+func pieceMobility(board *state.Board, piece *state.Piece) (int, error) {
+	if piece == nil {
+		return 0, fmt.Errorf("piece is nil")
+	}
+	if board == nil {
+		return 0, fmt.Errorf("Board is nil")
+	}
+	possibleMoves, err := piece.GetPossibleMoves(board)
+	if err != nil {
+		return 0, err
+	}
+	return len(possibleMoves), nil
 
 }
 
 // evalMobility - evaluates the mobility balance of the state (higher is better for white)
-func evalMobility(s *state.State) (result int) {
+func evalMobility(s *state.State) (int, error) {
+	result := 0
 	board := s.Board
 	for _, piece := range board.GetPieces() {
 		switch piece.Color {
 		case "white":
-			result += pieceMobility(s.Board, piece)
+			res, err := pieceMobility(s.Board, piece)
+			if err != nil {
+				return 0, err
+			}
+			result += res
 		case "black":
-			result -= pieceMobility(s.Board, piece)
+			res, err := pieceMobility(s.Board, piece)
+			if err != nil {
+				return 0, err
+			}
+			result -= res
 		}
 	}
-	return
+	return result, nil
 }
 
 // Weights - weights for different evaluation components
@@ -54,6 +75,11 @@ type Weights struct {
 }
 
 // EvalState - evaluates the state using weighted sum of different heuristics
-func EvalState(s *state.State, weights *Weights) (result float64) {
-	return weights.Material*float64(evalMaterial(s)) + weights.Mobility*float64(evalMobility(s))
+func EvalState(s *state.State, weights *Weights) (float64, error) {
+	evalMat := evalMaterial(s)
+	evalMob, err := evalMobility(s)
+	if err != nil {
+		return 0, err
+	}
+	return weights.Material*float64(evalMat) + weights.Mobility*float64(evalMob), nil
 }

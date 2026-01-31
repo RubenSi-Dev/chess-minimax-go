@@ -31,8 +31,11 @@ func CreateMovePromotion(from Position, to Position, prom string) (result *Move)
 	}
 }
 
-func (this *Move) Equal(other *Move) bool {
-	return this.From.Equal(other.From) && this.To.Equal(other.To)
+func (this *Move) Equal(other *Move) (bool, error) {
+	if this == nil || other == nil {
+		return false, fmt.Errorf("one of equal is nil")
+	}
+	return this.From.Equal(other.From) && this.To.Equal(other.To), nil
 }
 
 func (m *Move) String() (result string) {

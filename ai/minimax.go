@@ -15,7 +15,11 @@ func minimax(s *state.State, depth int, max bool, alpha float64, beta float64, w
 		return 0, err
 	}
 	if depth == 0 || isOver {
-		return EvalState(s, weights), nil
+		eval, err := EvalState(s, weights)
+		if err != nil {
+			return 0, err
+		}
+		return eval, nil
 	}
 
 	// check if maximizing or minimizing player
@@ -27,7 +31,11 @@ func minimax(s *state.State, depth int, max bool, alpha float64, beta float64, w
 	}
 
 	// iterate through all legal moves fetched from the state
-	for _, move := range s.GetLegalMoves() {
+	legalMoves, err := s.GetLegalMoves()
+	if err != nil {
+		return 0, err
+	}
+	for _, move := range legalMoves {
 		// try the move (simulate on a copy)
 		copyState, err := s.Copy()
 		if err != nil {
@@ -75,7 +83,11 @@ func SelectMove(s *state.State, depth int, weights *Weights) (*state.Move, float
 	}
 
 	// iterate through all legal moves this basically does the first layer of minimax because minimax itself doesn't return the move
-	for _, move := range s.GetLegalMoves() {
+	legalMoves, err := s.GetLegalMoves()
+	if err != nil {
+		return nil, bestScore, err
+	}
+	for _, move := range legalMoves {
 		copyState, err := s.Copy()
 		if err != nil {
 			return nil, bestScore, err

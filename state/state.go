@@ -55,25 +55,31 @@ func (s *State) switchTurn() string {
 // GetPossibleMoves - get all possible moves in the current state (inoring illegal moves by board context)
 // ranges over board.GetPieces() and appends it to the result (saves it in cache too)
 // first checks whether its already in cache
-func (s *State) GetPossibleMoves() []*Move {
+func (s *State) GetPossibleMoves() ([]*Move, error) {
 	if len(s.possibleMovesCache) != 0 {
-		return s.possibleMovesCache
+		return s.possibleMovesCache, nil
 	}
 
 	pieces := s.Board.GetPieces()
 	for _, piece := range pieces {
 		if piece.Color == s.Turn {
-			moves := piece.GetPossibleMoves(s.Board)
+			moves, err := piece.GetPossibleMoves(s.Board)
+			if err != nil {
+				return nil, err
+			}
 			s.possibleMovesCache = append(s.possibleMovesCache, moves...)
 		}
 	}
-	return s.possibleMovesCache
+	return s.possibleMovesCache, nil
 }
 
 // applyMoveBool - helper function that returns true if the move is possible
 // helpful for moves like castling where two pieces have to move
 func (s *State) applyMoveBool(move *Move) (bool, error) {
-	piece := s.Board.GetPiece(&move.From)
+	piece, err := s.Board.GetPiece(&move.From)
+	if err != nil {
+		return false, err
+	}
 	if piece != nil {
 		if move.Promotion == "queen" {
 			s.Board.RemoveFrom(&move.From)
@@ -86,7 +92,7 @@ func (s *State) applyMoveBool(move *Move) (bool, error) {
 			return true, nil
 		} else {
 			if piece.Type == "king" {
-				s.Board.clearKingsPosCash(piece.Color)
+				s.Board.clearKingsPosCache(piece.Color)
 				if !piece.HasMoved {
 					var rookMove *Move
 
@@ -119,9 +125,11 @@ func (s *State) applyMoveBool(move *Move) (bool, error) {
 						rookMove = nil
 					}
 
-					boolApply, err := s.applyMoveBool(rookMove)
-					if rookMove == nil || err != nil || !boolApply {
-						return false, err
+					if rookMove != nil {
+						boolApply, err := s.applyMoveBool(rookMove)
+						if err != nil || !boolApply {
+							return false, err
+						}
 					}
 				}
 			}
@@ -155,7 +163,8 @@ func (s *State) ApplyMove(move *Move) (bool, error) {
 func (s *State) isMoveLegal(move *Move) (bool, error) {
 	if len(s.legalMovesCache) != 0 {
 		return slices.ContainsFunc(s.legalMovesCache, func(m *Move) bool {
-			return move.Equal(m)
+			res, _ := move.Equal(m)
+			return res
 		}), nil
 	}
 
@@ -173,29 +182,37 @@ func (s *State) isMoveLegal(move *Move) (bool, error) {
 		return false, nil
 	}
 
-	controlledSquares := next.Board.squaresControlledBy(next.Turn)
+	controlledSquares, err := next.Board.squaresControlledBy(next.Turn)
+	if err != nil {
+		return false, err
+	}
 	return !slices.ContainsFunc(controlledSquares, func(p *Position) bool {
 		return p.Equal(*kingPos[0])
 	}), nil
 }
 
-func (s *State) GetLegalMoves() []*Move {
-	var cachedMoves []*Move
-	if len(s.legalMovesCache) == 0 {
-		cachedMoves = s.legalMovesCache
-	} else {
-		cachedMoves = s.legalMovesOrderedCache
+func (s *State) GetLegalMoves() ([]*Move, error) {
+	if len(s.legalMovesOrderedCache) != 0 {
+		return s.legalMovesOrderedCache, nil
 	}
-	if len(cachedMoves) != 0 {
-		return cachedMoves
+	if len(s.legalMovesCache) != 0 {
+		return s.legalMovesCache, nil
 	}
 
-	possibleMoves := s.GetPossibleMoves()
-	s.legalMovesCache = slices.DeleteFunc(possibleMoves, func(m *Move) bool {
+	possibleMoves, err := s.GetPossibleMoves()
+	if err != nil {
+		return nil, err
+	}
+	// Clone to avoid corrupting possibleMovesCache backing array
+	movesToFilter := slices.Clone(possibleMoves)
+	s.legalMovesCache = slices.DeleteFunc(movesToFilter, func(m *Move) bool {
+		if m == nil {
+			return true
+		}
 		isLegal, _ := s.isMoveLegal(m)
-		return m == nil || !isLegal
+		return !isLegal
 	})
-	return s.legalMovesCache
+	return s.legalMovesCache, nil
 }
 
 func (s *State) IsGameOver() (bool, error) {
@@ -216,7 +233,10 @@ func (s *State) IsGameOver() (bool, error) {
 // check by switching turns and seeing if the player has any legal moves
 // also checks for stalemate
 func (s *State) IsCheckmate() (bool, error) {
-	if legalMoves := s.GetLegalMoves(); len(legalMoves) == 0 {
+	if legalMoves, err := s.GetLegalMoves(); len(legalMoves) == 0 {
+		if err != nil {
+			return false, err
+		}
 		kingPos := s.Board.FindPiece("king", s.Turn)
 		if len(kingPos) == 0 || kingPos == nil {
 			return false, nil
@@ -226,7 +246,11 @@ func (s *State) IsCheckmate() (bool, error) {
 			return false, err
 		}
 		copy.switchTurn()
-		if slices.ContainsFunc(copy.GetPossibleMoves(), func(m *Move) bool {
+		copyPossibleMoves, err := copy.GetPossibleMoves()
+		if err != nil {
+			return false, err
+		}
+		if slices.ContainsFunc(copyPossibleMoves, func(m *Move) bool {
 			return m.To.Equal(*kingPos[0])
 		}) {
 			return true, nil
@@ -241,7 +265,11 @@ func (s *State) IsStalemate() (bool, error) {
 		return false, err
 	}
 
-	if len(s.GetLegalMoves()) == 0 && !isMate {
+	legalMoves, err := s.GetLegalMoves()
+	if err != nil {
+		return false, err
+	}
+	if len(legalMoves) == 0 && !isMate {
 		//fmt.Println("STALEMATE")
 		return true, nil
 	}
