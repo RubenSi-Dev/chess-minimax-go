@@ -57,7 +57,6 @@ type BotMoveMsg struct {
 }
 
 func (m model) getBotMove(s *chess.State, depth int) tea.Cmd {
-	// Wait for 100 ms before returning
 	return func() tea.Msg {
 		move, score, err := ai.SelectMove(s, depth, &m.menu.weights)
 		if err != nil {

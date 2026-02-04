@@ -3,9 +3,16 @@ package ai
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/spunker/chess/state"
 )
+
+type Result struct {
+	move  *state.Move
+	score float64
+	err   error
+}
 
 // minimax - minimax algorithm with alpha-beta pruning
 func minimax(s *state.State, depth int, max bool, alpha float64, beta float64, weights *Weights) (float64, error) {
@@ -33,7 +40,7 @@ func minimax(s *state.State, depth int, max bool, alpha float64, beta float64, w
 	// iterate through all legal moves fetched from the state
 	legalMoves, err := s.GetLegalMoves()
 	if err != nil {
-		return 0, err
+		return math.Inf(-1), err
 	}
 	for _, move := range legalMoves {
 		// try the move (simulate on a copy)
@@ -72,7 +79,6 @@ func minimax(s *state.State, depth int, max bool, alpha float64, beta float64, w
 
 // SelectMove - selects the best move using minimax algorithm
 func SelectMove(s *state.State, depth int, weights *Weights) (*state.Move, float64, error) {
-	// hardcoded for maximizing player being white (for now)
 	var bestMove *state.Move
 	var bestScore float64
 	max := s.Turn == "white"
@@ -87,34 +93,55 @@ func SelectMove(s *state.State, depth int, weights *Weights) (*state.Move, float
 	if err != nil {
 		return nil, bestScore, err
 	}
+
+	results := make(chan Result, len(legalMoves))
+	var wg sync.WaitGroup
+
 	for _, move := range legalMoves {
-		copyState, err := s.Copy()
-		if err != nil {
-			return nil, bestScore, err
-		}
+		wg.Add(1)
+		go evaluateMove(s, move, depth, weights, max, &wg, results)
+	}
 
-		_, err = copyState.ApplyMove(move)
-		if err != nil {
-			return nil, bestScore, err
-		}
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
 
-		score, err := minimax(copyState, depth-1, !max, math.Inf(-1), math.Inf(1), weights)
-		if err != nil {
-			return nil, score, fmt.Errorf("error evalutating move %v", move.ToAlgebraic())
+	for res := range results {
+		if res.err != nil {
+			return nil, math.Inf(-1), res.err
 		}
-
 		if max {
-			if score > bestScore {
-				bestScore = score
-				bestMove = move
+			if res.score > bestScore {
+				bestScore = res.score
+				bestMove = res.move
 			}
 		} else {
-			if score < bestScore {
-				bestScore = score
-				bestMove = move
+			if res.score < bestScore {
+				bestScore = res.score
+				bestMove = res.move
 			}
 		}
 	}
-	//fmt.Printf("selected move %v", bestMove.ToAlgebraic())
 	return bestMove, bestScore, nil
+}
+
+func evaluateMove(s *state.State, m *state.Move, depth int, weights *Weights, max bool, wg *sync.WaitGroup, results chan<- Result) {
+	defer wg.Done()
+	copyState, err := s.Copy()
+	if err != nil {
+		results <- Result{move: m, score: math.Inf(-1), err: err}
+	}
+
+	_, err = copyState.ApplyMove(m)
+	if err != nil {
+		results <- Result{move: m, score: math.Inf(-1), err: err}
+	}
+
+	score, err := minimax(copyState, depth-1, !max, math.Inf(-1), math.Inf(1), weights)
+	if err != nil {
+		results <- Result{move: m, score: score, err: fmt.Errorf("error evalutating move %v", m.ToAlgebraic())}
+	}
+
+	results <- Result{move: m, score: score, err: nil}
 }
